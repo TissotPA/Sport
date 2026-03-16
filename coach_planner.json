@@ -9,12 +9,52 @@
         "Épaules",
         "Triceps"
       ]
+    },
+    {
+      "id": 2,
+      "nom": "Pompes déclinées",
+      "description": "Pompes avec les pieds sur une chaise",
+      "groupe_principal": "Pectoraux",
+      "groupes_musculaires": [
+        "Épaules",
+        "Triceps"
+      ]
+    },
+    {
+      "id": 3,
+      "nom": "Pompes pike",
+      "description": "Fesses en l'air, corps en V inversé, descendez le sommet du crâne vers le sol",
+      "groupe_principal": "Épaules",
+      "groupes_musculaires": [
+        "Pectoraux",
+        "Triceps"
+      ]
+    },
+    {
+      "id": 4,
+      "nom": "Pompes diamants",
+      "description": "Mains serrées pour focus les triceps",
+      "groupe_principal": "Triceps",
+      "groupes_musculaires": [
+        "Pectoraux",
+        "Épaules"
+      ]
+    },
+    {
+      "id": 5,
+      "nom": "Pompes archer",
+      "description": "Écartez les bras et descendez d'un côté puis de l'autre",
+      "groupe_principal": "Pectoraux",
+      "groupes_musculaires": [
+        "Épaules",
+        "Triceps"
+      ]
     }
   ],
   "seances": [],
   "programmes": [],
   "_next_ids": {
-    "exercice": 2,
+    "exercice": 6,
     "seance": 1,
     "programme": 1
   }
