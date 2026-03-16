@@ -3,6 +3,7 @@
     {
       "id": 1,
       "nom": "Pompes",
+      "description": "Bras largeur d'épaule, descendre les coudes serrés au buste jusqu'à frôler le sol avec la poitrine",
       "groupe_principal": "Pectoraux",
       "groupes_musculaires": [
         "Épaules",
@@ -14,7 +15,7 @@
   "programmes": [],
   "_next_ids": {
     "exercice": 2,
-    "seance": 2,
+    "seance": 1,
     "programme": 1
   }
 }
