@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Coach Planner</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+
+    <header class="header">
+      <div class="header-content">
+        <div>
+          <h1>Coach Planner</h1>
+          <p>Consultation des programmes, séances et exercices</p>
+        </div>
+        <div class="header-io">
+          <button class="btn btn-light btn-sm" id="btn-charger">&#x21BA; Charger</button>
+        </div>
+      </div>
+    </header>
+
+    <nav class="nav">
+      <a class="nav-btn" href="#programmes" id="tab-programmes">Programmes</a>
+      <a class="nav-btn" href="#seances"    id="tab-seances">Séances</a>
+      <a class="nav-btn" href="#exercices"  id="tab-exercices">Exercices</a>
+    </nav>
+
+    <main class="main" id="main">
+      <p class="empty-state">Chargement…</p>
+    </main>
+
+  </div>
+
+  <script>
+  // ─────────────────────────────────────────────────────────────
+  // Données globales
+  // ─────────────────────────────────────────────────────────────
+  let DATA = { exercices: [], seances: [], programmes: [] };
+  let EX_MAP = {};   // id → exercice
+
+  // ─────────────────────────────────────────────────────────────
+  // Sécurité : échappement HTML (prévention XSS)
+  // ─────────────────────────────────────────────────────────────
+  function esc(val) {
+    return String(val ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Chargement des données
+  // ─────────────────────────────────────────────────────────────
+  async function loadData() {
+    const main = document.getElementById('main');
+    main.innerHTML = '<p class="empty-state">Chargement…</p>';
+    try {
+      const res = await fetch('./coach_planner.json?t=' + Date.now());
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      DATA = await res.json();
+      EX_MAP = {};
+      for (const ex of (DATA.exercices || [])) EX_MAP[ex.id] = ex;
+      route();
+    } catch (e) {
+      main.innerHTML = '<p class="empty-state">Impossible de charger <strong>coach_planner.json</strong>.<br>Vérifiez que le fichier est présent et que le serveur autorise les requêtes CORS.</p>';
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Routeur hash
+  // ─────────────────────────────────────────────────────────────
+  function route() {
+    const hash  = location.hash.replace(/^#\/?/, '') || 'programmes';
+    const parts = hash.split('/');
+    const page  = parts[0];
+    const id    = parts[1] ? parseInt(parts[1], 10) : null;
+
+    // Mise à jour onglets
+    const tabMap = {
+      programmes: 'tab-programmes', programme: 'tab-programmes',
+      seances:    'tab-seances',    seance:    'tab-seances',
+      exercices:  'tab-exercices',  exercice:  'tab-exercices',
+    };
+    document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+    const tab = tabMap[page];
+    if (tab) document.getElementById(tab).classList.add('active');
+
+    switch (page) {
+      case 'programmes': renderProgrammes();      break;
+      case 'programme':  if (id !== null) renderProgramme(id);  break;
+      case 'seances':    renderSeances();         break;
+      case 'seance':     if (id !== null) renderSeance(id);     break;
+      case 'exercices':  renderExercices();       break;
+      case 'exercice':   if (id !== null) renderExercice(id);   break;
+      default:           renderProgrammes();
+    }
+  }
+
+  window.addEventListener('hashchange', route);
+  window.addEventListener('load', loadData);
+  document.getElementById('btn-charger').addEventListener('click', loadData);
+
+  // Cartes cliquables (data-href)
+  document.addEventListener('click', function (e) {
+    const card = e.target.closest('[data-href]');
+    if (!card) return;
+    if (e.target.closest('a, button')) return;
+    location.hash = card.dataset.href;
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // Vue : liste des programmes
+  // ─────────────────────────────────────────────────────────────
+  function renderProgrammes() {
+    let html = '<section class="section-header"><h2>Liste des programmes</h2></section>';
+    const list = DATA.programmes || [];
+    if (!list.length) {
+      html += '<p class="empty-state">Aucun programme pour l\'instant.</p>';
+    } else {
+      html += '<section class="cards-grid">';
+      for (const p of list) {
+        const nbSeances = (p.seances || []).length;
+        html += `<article class="card" data-href="#programme/${p.id}">
+          <h3>${esc(p.nom)}</h3>
+          <p>${nbSeances} séance(s)</p>
+        </article>`;
+      }
+      html += '</section>';
+    }
+    document.getElementById('main').innerHTML = html;
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Vue : détail d'un programme
+  // ─────────────────────────────────────────────────────────────
+  function renderProgramme(id) {
+    const prog = (DATA.programmes || []).find(p => p.id === id);
+    if (!prog) { document.getElementById('main').innerHTML = '<p class="empty-state">Programme introuvable.</p>'; return; }
+
+    const seances = (prog.seances || []).map(sid => (DATA.seances || []).find(s => s.id === sid)).filter(Boolean);
+
+    let html = `<section class="section-header">
+      <div>
+        <h2>${esc(prog.nom)}</h2>
+        <p class="subtitle">Fiche programme</p>
+      </div>
+      <a class="btn btn-light" href="#programmes">Retour programmes</a>
+    </section>`;
+
+    if (!seances.length) {
+      html += '<p class="empty-state">Aucune séance dans ce programme.</p>';
+    } else {
+      html += '<section class="cards-grid">';
+      for (const s of seances) {
+        const nb = (s.blocs || []).length;
+        html += `<article class="card">
+          <h3>${esc(s.nom)}</h3>
+          <p>${nb} élément(s)</p>
+          <a class="btn" href="#seance/${s.id}">Ouvrir la séance</a>
+        </article>`;
+      }
+      html += '</section>';
+    }
+    document.getElementById('main').innerHTML = html;
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Vue : liste des séances
+  // ─────────────────────────────────────────────────────────────
+  function renderSeances() {
+    let html = '<section class="section-header"><h2>Liste des séances</h2></section>';
+    const list = DATA.seances || [];
+    if (!list.length) {
+      html += '<p class="empty-state">Aucune séance pour l\'instant.</p>';
+    } else {
+      html += '<section class="cards-grid">';
+      for (const s of list) {
+        const nb = (s.blocs || []).length;
+        html += `<article class="card" data-href="#seance/${s.id}">
+          <h3>${esc(s.nom)}</h3>
+          <p>${nb} élément(s)</p>
+        </article>`;
+      }
+      html += '</section>';
+    }
+    document.getElementById('main').innerHTML = html;
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Vue : détail d'une séance
+  // ─────────────────────────────────────────────────────────────
+  function renderSeance(id) {
+    const seance = (DATA.seances || []).find(s => s.id === id);
+    if (!seance) { document.getElementById('main').innerHTML = '<p class="empty-state">Séance introuvable.</p>'; return; }
+
+    const blocs = seance.blocs || [];
+
+    let html = `<section class="section-header">
+      <div>
+        <h2>${esc(seance.nom)}</h2>
+        <p class="subtitle">${blocs.length} élément(s)</p>
+      </div>
+      <a class="btn btn-light" href="#seances">Retour séances</a>
+    </section>`;
+
+    if (!blocs.length) {
+      html += '<p class="empty-state">Aucun élément dans cette séance.</p>';
+      document.getElementById('main').innerHTML = html;
+      return;
+    }
+
+    // ── Calcul des scores musculaires ──
+    const scores = {};
+    for (const bloc of blocs) {
+      if (bloc.type === 'renforcement') {
+        const ex = EX_MAP[bloc.exercice_id];
+        if (ex) {
+          if (ex.groupe_principal) {
+            scores[ex.groupe_principal] = (scores[ex.groupe_principal] || 0) + 5;
+          }
+          for (const g of (ex.groupes_musculaires || [])) {
+            scores[g] = (scores[g] || 0) + 1;
+          }
+        }
+      }
+    }
+
+    const muscles = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+    if (muscles.length) {
+      html += '<section class="muscle-summary-section">';
+      html += '<h3 class="muscle-summary-title">Groupes musculaires sollicités</h3>';
+      html += '<div class="muscle-summary-chips">';
+      for (const [muscle, score] of muscles) {
+        const cls = score >= 5 ? 'msc-primary' : score >= 2 ? 'msc-secondary' : 'msc-light';
+        html += `<span class="muscle-summary-chip ${cls}">${esc(muscle)}</span>`;
+      }
+      html += '</div></section>';
+    }
+
+    // ── Cartes des blocs ──
+    html += '<section class="cards-grid">';
+    for (const bloc of blocs) {
+      html += '<article class="card">';
+      if (bloc.type === 'renforcement') {
+        const ex = EX_MAP[bloc.exercice_id];
+        const nom = bloc.exercice_nom || (ex ? ex.nom : '—');
+        html += `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+          <h3>${esc(nom)}</h3>
+          <span class="cat-badge cat-renforcement">Renforcement</span>
+        </div>`;
+        if (ex && (ex.groupe_principal || (ex.groupes_musculaires || []).length)) {
+          html += '<div class="tags-display tags-display-sm">';
+          if (ex.groupe_principal) html += `<span class="tag tag-primary">${esc(ex.groupe_principal)}</span>`;
+          for (const g of (ex.groupes_musculaires || [])) html += `<span class="tag tag-secondary">${esc(g)}</span>`;
+          html += '</div>';
+        }
+        html += `<ul class="details-list">
+          <li>${bloc.series} série(s) &times; ${bloc.reps} rép. @ ${bloc.charge} kg</li>
+        </ul>`;
+        if (ex) html += `<a class="btn btn-sm btn-light" href="#exercice/${ex.id}">Ouvrir l'exercice</a>`;
+
+      } else {
+        // ── bloc course ──
+        const nomCourse = esc(bloc.nom || (bloc.type_course === 'longue' ? 'Sortie longue' : 'Fractionné'));
+        html += `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+          <h3>${nomCourse}</h3>
+          <span class="cat-badge cat-course">Course</span>
+        </div>`;
+
+        if (bloc.type_course === 'longue') {
+          html += '<ul class="details-list"><li>Sortie longue</li>';
+          if (bloc.mesure === 'temps') {
+            html += `<li>${esc(String(bloc.valeur_longue))} min</li>`;
+          } else {
+            html += `<li>${esc(String(bloc.valeur_longue))} km</li>`;
+          }
+          if (bloc.allure_valeur_longue) {
+            const unit = bloc.allure_type_longue === 'kmh' ? 'km/h' : 'min/km';
+            html += `<li>@ ${esc(String(bloc.allure_valeur_longue))} ${unit}</li>`;
+          }
+          html += '</ul>';
+        } else {
+          // Fractionné
+          html += '<p class="field-label">Fractionné</p>';
+          if (bloc.segments && bloc.segments.length) {
+            html += '<div class="frac-segs">';
+            for (const seg of bloc.segments) {
+              html += '<div class="frac-seg">';
+              if (seg.kind === 'course') {
+                html += `<div class="frac-seg-num">&#x26A1; Course</div>`;
+                html += `<div class="frac-seg-phases"><span>${renderPhaseInline(seg.haute)}</span></div>`;
+              } else if (seg.kind === 'recuperation') {
+                html += `<div class="frac-seg-num">&#x23F8; Récupération</div>`;
+                const v = seg.basse ? `${esc(String(seg.basse.valeur))} ${esc(seg.basse.type)}` : '—';
+                html += `<div class="frac-seg-phases"><span>${v}</span></div>`;
+              } else {
+                // intervalle
+                html += `<div class="frac-seg-num">Intervalle &times; ${seg.reps}</div>`;
+                html += '<div class="frac-seg-phases">';
+                html += `<span><strong class="phase-haute">&#x2B06; Haute :</strong> ${renderPhaseInline(seg.haute)}</span>`;
+                html += `<span><strong class="phase-basse">&#x2B07; Récup. :</strong> ${renderPhaseInline(seg.basse)}</span>`;
+                html += '</div>';
+              }
+              html += '</div>'; // frac-seg
+            }
+            html += '</div>'; // frac-segs
+          }
+        }
+      }
+      html += '</article>';
+    }
+    html += '</section>';
+    document.getElementById('main').innerHTML = html;
+  }
+
+  function renderPhaseInline(phase) {
+    if (!phase) return '—';
+    let s = `${esc(String(phase.valeur))} ${esc(phase.type)}`;
+    if (phase.allure_valeur) {
+      const unit = phase.allure_type === 'kmh' ? 'km/h' : phase.allure_type === 'minkm' ? 'min/km' : '%FC';
+      s += ` @ ${esc(String(phase.allure_valeur))} ${unit}`;
+    }
+    return s;
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Vue : liste des exercices
+  // ─────────────────────────────────────────────────────────────
+  function renderExercices() {
+    let html = '<section class="section-header"><h2>Liste des exercices</h2></section>';
+    const sorted = [...(DATA.exercices || [])].sort((a, b) => a.nom.localeCompare(b.nom, 'fr', { sensitivity: 'base' }));
+    if (!sorted.length) {
+      html += '<p class="empty-state">Aucun exercice pour l\'instant.</p>';
+    } else {
+      html += '<section class="cards-grid">';
+      for (const ex of sorted) {
+        html += `<article class="card" data-href="#exercice/${ex.id}">
+          <h3>${esc(ex.nom)}</h3>`;
+        if (ex.groupe_principal || (ex.groupes_musculaires || []).length) {
+          html += '<div class="tags-display tags-display-sm">';
+          if (ex.groupe_principal) html += `<span class="tag tag-primary">${esc(ex.groupe_principal)}</span>`;
+          for (const g of (ex.groupes_musculaires || [])) html += `<span class="tag tag-secondary">${esc(g)}</span>`;
+          html += '</div>';
+        }
+        html += '</article>';
+      }
+      html += '</section>';
+    }
+    document.getElementById('main').innerHTML = html;
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Vue : détail d'un exercice
+  // ─────────────────────────────────────────────────────────────
+  function renderExercice(id) {
+    const ex = (DATA.exercices || []).find(e => e.id === id);
+    if (!ex) { document.getElementById('main').innerHTML = '<p class="empty-state">Exercice introuvable.</p>'; return; }
+
+    let html = `<section class="section-header">
+      <div>
+        <h2>${esc(ex.nom)}</h2>
+        <p class="subtitle">Renforcement musculaire</p>
+      </div>
+      <a class="btn btn-light" href="#exercices">Retour</a>
+    </section>
+    <article class="card card-single">`;
+
+    if (ex.groupe_principal || (ex.groupes_musculaires || []).length) {
+      html += '<div class="form-group"><p class="field-label">Groupes musculaires</p><div class="tags-display">';
+      if (ex.groupe_principal) html += `<span class="tag tag-primary">${esc(ex.groupe_principal)}</span>`;
+      for (const g of (ex.groupes_musculaires || [])) html += `<span class="tag tag-secondary">${esc(g)}</span>`;
+      html += '</div></div>';
+    } else {
+      html += '<p class="empty-state">Aucun groupe musculaire défini.</p>';
+    }
+    html += '</article>';
+    document.getElementById('main').innerHTML = html;
+  }
+  </script>
+</body>
+</html>
