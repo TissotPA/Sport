@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block title %}Nouveau programme{% endblock %}
+{% block content %}
+<section class="section-header">
+    <h2>Nouveau programme</h2>
+    <a class="btn btn-light" href="{{ url_for('programmes') }}">Annuler</a>
+</section>
+
+<form class="form-card" method="post" action="{{ url_for('programme_creer') }}">
+    <div class="form-group">
+        <label for="nom">Nom du programme</label>
+        <input type="text" id="nom" name="nom" required placeholder="Ex : Prise de force 8 semaines">
+    </div>
+
+    <div class="form-group">
+        <label>Séances incluses</label>
+        {% if seances %}
+        <div class="checkbox-list">
+            {% for s in seances %}
+            <label class="checkbox-item">
+                <input type="checkbox" name="seances" value="{{ s.id }}">
+                <span>{{ s.nom }}</span>
+                <small>{{ s.exercices | length }} exercice(s)</small>
+            </label>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty-hint">Aucune séance disponible. <a href="{{ url_for('seance_creer') }}">Créez-en une d'abord.</a></p>
+        {% endif %}
+    </div>
+
+    <button type="submit" class="btn">Créer le programme</button>
+</form>
+{% endblock %}

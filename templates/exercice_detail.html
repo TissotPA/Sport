@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block title %}Fiche Exercice{% endblock %}
+
+{% block content %}
+<section class="section-header">
+    <div>
+        <h2>{{ exercice.nom }}</h2>
+        <p class="subtitle">Renforcement musculaire</p>
+    </div>
+    <div class="header-actions">
+        <a class="btn btn-light" href="{{ url_for('exercice_modifier', exercice_id=exercice.id) }}">Modifier</a>
+        <form method="post" action="{{ url_for('exercice_supprimer', exercice_id=exercice.id) }}"
+              data-confirm="Supprimer l'exercice « {{ exercice.nom }} » ? Cette action est irréversible."
+              data-confirm-label="Supprimer">
+            <button type="submit" class="btn btn-danger">Supprimer</button>
+        </form>
+        <a class="btn btn-light" href="{{ url_for('exercices') }}">Retour</a>
+    </div>
+</section>
+
+<article class="card card-single">
+    {% if exercice.groupe_principal or exercice.groupes_musculaires %}
+    <div class="form-group">
+        <p class="field-label">Groupes musculaires</p>
+        <div class="tags-display">
+            {% if exercice.groupe_principal %}
+            <span class="tag tag-primary">{{ exercice.groupe_principal }}</span>
+            {% endif %}
+            {% for g in exercice.groupes_musculaires %}
+            <span class="tag tag-secondary">{{ g }}</span>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <p class="empty-state">Aucun groupe musculaire défini.</p>
+    {% endif %}
+</article>
+{% endblock %}

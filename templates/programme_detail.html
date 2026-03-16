@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}Fiche Programme{% endblock %}
+
+{% block content %}
+<section class="section-header">
+    <div>
+        <h2>{{ programme.nom }}</h2>
+        <p class="subtitle">Fiche programme</p>
+    </div>
+    <a class="btn btn-light" href="{{ url_for('programmes') }}">Retour programmes</a>
+</section>
+
+<section class="cards-grid">
+    {% for seance in seances %}
+    <article class="card">
+        <h3>{{ seance.nom }}</h3>
+        <p>{{ seance.exercices|length }} exercices</p>
+        <a class="btn" href="{{ url_for('seance_detail', seance_id=seance.id) }}">Ouvrir la seance</a>
+    </article>
+    {% endfor %}
+</section>
+{% endblock %}

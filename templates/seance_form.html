@@ -1,0 +1,459 @@
+{% extends 'base.html' %}
+{% block title %}{% if seance %}Modifier la séance{% else %}Nouvelle séance{% endif %}{% endblock %}
+{% block content %}
+<section class="section-header">
+    <h2>{% if seance %}Modifier la séance{% else %}Nouvelle séance{% endif %}</h2>
+    <a class="btn btn-light" href="{% if seance %}{{ url_for('seance_detail', seance_id=seance.id) }}{% else %}{{ url_for('seances') }}{% endif %}">Annuler</a>
+</section>
+
+<form class="form-card form-card-wide" method="post"
+      action="{% if seance %}{{ url_for('seance_modifier', seance_id=seance.id) }}{% else %}{{ url_for('seance_creer') }}{% endif %}"
+      id="seance-form">
+    <input type="hidden" name="items_json" id="items-json">
+
+    <div class="form-group">
+        <label for="nom">Nom de la séance</label>
+        <input type="text" id="nom" name="nom" required placeholder="Ex : Haut du corps force"
+               value="{% if seance %}{{ seance.nom }}{% endif %}">
+    </div>
+
+    <div class="form-group">
+        <label>Contenu de la séance</label>
+        <div id="items-list" class="items-list"></div>
+        <div class="add-block-btns">
+            <button type="button" class="btn btn-outline" onclick="addRenforcement()">+ Exercice (renforcement)</button>
+            <button type="button" class="btn btn-outline" onclick="addCourseItem()">+ Course</button>
+        </div>
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; margin-top:4px;">
+        <button type="submit" class="btn">{% if seance %}Enregistrer{% else %}Créer la séance{% endif %}</button>
+    </div>
+</form>
+
+{% if seance %}
+<script>const INIT_DATA = {{ seance | tojson }};</script>
+{% endif %}
+
+<script>
+const EXERCICES_LIST = {{ exercices | tojson }};
+const unitOpts   = `<option value="sec">sec</option><option value="min">min</option><option value="m">m</option><option value="km">km</option>`;
+const allureOpts = `<option value="minkm">min/km</option><option value="kmh">km/h</option><option value="pct">%</option>`;
+// Build searchable exercise data (name + muscles as search tokens)
+const EX_DATA = EXERCICES_LIST.map(e => ({
+    id: e.id,
+    nom: e.nom,
+    tokens: [e.nom, e.groupe_principal || '', ...(e.groupes_musculaires || [])].join(' ').toLowerCase()
+}));
+
+let itemCounter = 0;
+let itemOrder   = [];
+let segCounters = {};
+
+// ── Renforcement ──────────────────────────────────────────────
+function addRenforcement(d) {
+    d = d || {};
+    const id = ++itemCounter;
+    itemOrder.push(id);
+    const el = document.createElement('div');
+    el.className = 'seance-item seance-item-rf';
+    el.id = 'item-' + id;
+    el.dataset.type = 'renforcement';
+    el.innerHTML = `
+        <div class="item-header">
+            <span class="drag-handle" title="D&eacute;placer">&#x283F;</span>
+            <span class="cat-badge cat-renforcement">Renforcement</span>
+            <button type="button" class="btn-remove" onclick="removeItem(${id})">&#x2715;</button>
+        </div>
+        <div class="form-group ex-search-group">
+            <label>Exercice</label>
+            <div class="ex-search-wrap" id="ex-wrap-${id}">
+                <input type="text" class="ex-search-input" id="ex-search-${id}"
+                       placeholder="Rechercher par nom ou muscle…"
+                       autocomplete="off"
+                       oninput="filterEx(${id})"
+                       onfocus="openExDrop(${id})"
+                       onblur="closeExDropDelayed(${id})">
+                <input type="hidden" data-field="exercice_id" id="ex-val-${id}">
+                <div class="ex-drop" id="ex-drop-${id}"></div>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>S&eacute;ries</label>
+                <input type="number" data-field="series" min="1" max="20" value="${d.series || 3}" style="width:80px">
+            </div>
+            <div class="form-group">
+                <label>R&eacute;p&eacute;titions</label>
+                <input type="number" data-field="reps" min="1" value="${d.reps || 10}" style="width:80px">
+            </div>
+            <div class="form-group">
+                <label>Charge (kg)</label>
+                <input type="number" data-field="charge" min="0" step="0.5" value="${d.charge || 0}" style="width:80px">
+            </div>
+        </div>`;
+    document.getElementById('items-list').appendChild(el);
+    // Restore exercise if editing
+    if (d.exercice_id) {
+        document.getElementById('ex-val-' + id).value = d.exercice_id;
+        const ex = EX_DATA.find(e => e.id === d.exercice_id);
+        if (ex) document.getElementById('ex-search-' + id).value = ex.nom;
+    }
+    renderExDrop(id, '');
+    initDrag(el);
+}
+
+// ── Exercise search combobox ─────────────────────────────────
+function renderExDrop(itemId, query) {
+    const drop = document.getElementById('ex-drop-' + itemId);
+    const q    = query.trim().toLowerCase();
+    const results = q === ''
+        ? EX_DATA
+        : EX_DATA.filter(e => e.tokens.includes(q) || e.tokens.split(' ').some(t => t.startsWith(q)));
+    if (results.length === 0) {
+        drop.innerHTML = '<div class="ex-drop-empty">Aucun r&eacute;sultat</div>';
+    } else {
+        drop.innerHTML = results.map(e => {
+            const ex = EXERCICES_LIST.find(x => x.id === e.id);
+            const muscles = [ex.groupe_principal, ...(ex.groupes_musculaires || [])].filter(Boolean).join(', ');
+            return `<div class="ex-drop-item" data-id="${e.id}" data-nom="${e.nom.replace(/"/g,'&quot;')}" onmousedown="pickEx(${itemId},${e.id},this)">
+                <span class="ex-drop-nom">${highlight(e.nom, q)}</span>
+                ${muscles ? `<span class="ex-drop-muscles">${highlight(muscles, q)}</span>` : ''}
+            </div>`;
+        }).join('');
+    }
+}
+
+function highlight(text, q) {
+    if (!q) return text;
+    const re = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+    return text.replace(re, '<mark>$1</mark>');
+}
+
+function filterEx(itemId) {
+    const q = document.getElementById('ex-search-' + itemId).value;
+    renderExDrop(itemId, q);
+    openExDrop(itemId);
+    // Clear selected value if user is typing again
+    document.getElementById('ex-val-' + itemId).value = '';
+}
+
+function openExDrop(itemId) {
+    const drop = document.getElementById('ex-drop-' + itemId);
+    drop.classList.add('ex-drop-open');
+    renderExDrop(itemId, document.getElementById('ex-search-' + itemId).value);
+}
+
+function closeExDropDelayed(itemId) {
+    setTimeout(() => {
+        const drop = document.getElementById('ex-drop-' + itemId);
+        if (drop) drop.classList.remove('ex-drop-open');
+    }, 150);
+}
+
+function pickEx(itemId, exId, item) {
+    document.getElementById('ex-val-'    + itemId).value = exId;
+    document.getElementById('ex-search-' + itemId).value = item.dataset.nom;
+    document.getElementById('ex-drop-'   + itemId).classList.remove('ex-drop-open');
+}
+
+// ── Course ────────────────────────────────────────────────────
+function addCourseItem(d) {
+    d = d || {};
+    const id  = ++itemCounter;
+    itemOrder.push(id);
+    segCounters[id] = 0;
+    const tc  = d.type_course || 'longue';
+    const mes = d.mesure || 'temps';
+    const el  = document.createElement('div');
+    el.className = 'seance-item seance-item-course';
+    el.id = 'item-' + id;
+    el.dataset.type = 'course';
+    el.innerHTML = `
+        <div class="item-header">
+            <span class="drag-handle" title="D&eacute;placer">&#x283F;</span>
+            <span class="cat-badge cat-course">Course</span>
+            <button type="button" class="btn-remove" onclick="removeItem(${id})">&#x2715;</button>
+        </div>
+        <div class="form-group">
+            <label>Nom</label>
+            <input type="text" data-field="nom" value="${d.nom || ''}" placeholder="Ex : Sortie endurance">
+        </div>
+        <div class="form-group">
+            <label>Type</label>
+            <div class="radio-pills" id="tc-pills-${id}">
+                <label class="radio-pill ${tc === 'longue' ? 'radio-pill-active' : ''}" onclick="setTC(${id},'longue',this)">
+                    <input type="radio" name="tc_${id}" value="longue" ${tc === 'longue' ? 'checked' : ''}> Sortie longue
+                </label>
+                <label class="radio-pill ${tc === 'fractionne' ? 'radio-pill-active' : ''}" onclick="setTC(${id},'fractionne',this)">
+                    <input type="radio" name="tc_${id}" value="fractionne" ${tc === 'fractionne' ? 'checked' : ''}> Fractionn&eacute;
+                </label>
+            </div>
+        </div>
+        <div id="item-longue-${id}" ${tc !== 'longue' ? 'class="hidden"' : ''}>
+            <div class="form-group">
+                <label>Mesure</label>
+                <div class="radio-pills" id="mes-pills-${id}">
+                    <label class="radio-pill ${mes === 'temps' ? 'radio-pill-active' : ''}" onclick="setMes(${id},'temps',this)">
+                        <input type="radio" name="mes_${id}" value="temps" ${mes === 'temps' ? 'checked' : ''}> Temps
+                    </label>
+                    <label class="radio-pill ${mes === 'distance' ? 'radio-pill-active' : ''}" onclick="setMes(${id},'distance',this)">
+                        <input type="radio" name="mes_${id}" value="distance" ${mes === 'distance' ? 'checked' : ''}> Distance
+                    </label>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label id="lbl-val-${id}">${mes === 'temps' ? 'Dur\u00e9e (min)' : 'Distance (km)'}</label>
+                    <input type="number" data-field="valeur_longue" min="0" step="0.5" value="${d.valeur_longue || 30}">
+                </div>
+                <div class="form-group">
+                    <label>Allure cible</label>
+                    <div class="allure-group">
+                        <select data-field="allure_type_longue" class="form-select">
+                            <option value="minkm" ${(d.allure_type_longue || 'minkm') === 'minkm' ? 'selected' : ''}>min/km</option>
+                            <option value="kmh"   ${d.allure_type_longue === 'kmh'   ? 'selected' : ''}>km/h</option>
+                        </select>
+                        <input type="text" data-field="allure_valeur_longue"
+                               value="${d.allure_valeur_longue || ''}"
+                               class="allure-val-input" placeholder="Ex : 5:00">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="item-frac-${id}" ${tc !== 'fractionne' ? 'class="hidden"' : ''}>
+            <div class="segments-list" id="seg-list-${id}"></div>
+            <div class="add-block-btns">
+                <button type="button" class="btn btn-outline btn-sm" onclick="addCB(${id})">+ Course</button>
+                <button type="button" class="btn btn-outline btn-sm" onclick="addIB(${id})">+ Segment</button>
+                <button type="button" class="btn btn-outline btn-sm" onclick="addRB(${id})">+ R&eacute;cup&eacute;ration</button>
+            </div>
+        </div>`;
+    document.getElementById('items-list').appendChild(el);
+    if (d.segments) d.segments.forEach(seg => _addSegFromData(id, seg));
+    initDrag(el);
+}
+
+function setTC(itemId, val, lbl) {
+    document.querySelectorAll('#tc-pills-' + itemId + ' .radio-pill').forEach(l => l.classList.remove('radio-pill-active'));
+    lbl.classList.add('radio-pill-active');
+    document.getElementById('item-longue-' + itemId).classList.toggle('hidden', val !== 'longue');
+    document.getElementById('item-frac-'   + itemId).classList.toggle('hidden', val !== 'fractionne');
+}
+
+function setMes(itemId, val, lbl) {
+    document.querySelectorAll('#mes-pills-' + itemId + ' .radio-pill').forEach(l => l.classList.remove('radio-pill-active'));
+    lbl.classList.add('radio-pill-active');
+    document.getElementById('lbl-val-' + itemId).textContent = val === 'temps' ? 'Dur\u00e9e (min)' : 'Distance (km)';
+}
+
+function removeItem(id) {
+    const idx = itemOrder.indexOf(id);
+    if (idx > -1) itemOrder.splice(idx, 1);
+    document.getElementById('item-' + id).remove();
+}
+
+// ── Segment blocks ────────────────────────────────────────────
+function _addSegRow(itemId, kind, html) {
+    const list = document.getElementById('seg-list-' + itemId);
+    const row  = document.createElement('div');
+    row.className    = 'segment-row';
+    row.dataset.kind = kind;
+    row.innerHTML    = html;
+    list.appendChild(row);
+}
+
+function addCB(itemId) {
+    _addSegRow(itemId, 'course', `
+        <input type="hidden" data-sf="kind" value="course">
+        <div class="segment-header">
+            <span class="segment-num seg-kind-course">&#x26A1; Course</span>
+            <button type="button" class="btn-remove" onclick="removeSeg(this,${itemId})">&#x2715;</button>
+        </div>
+        <div class="segment-phase-row">
+            <input type="number" data-sf="h_valeur" min="0" step="0.5" value="30" class="input-unit-val seg-val">
+            <select data-sf="h_type" class="form-select-sm">${unitOpts}</select>
+            <span class="phase-at">@</span>
+            <input type="text" data-sf="h_allure_valeur" class="input-unit-val seg-allure-val" placeholder="Ex: 5:00">
+            <select data-sf="h_allure_type" class="form-select-sm">${allureOpts}</select>
+        </div>`);
+}
+
+function addIB(itemId) {
+    segCounters[itemId] = (segCounters[itemId] || 0) + 1;
+    const n = segCounters[itemId];
+    _addSegRow(itemId, 'fractionne', `
+        <input type="hidden" data-sf="kind" value="fractionne">
+        <div class="segment-header">
+            <span class="segment-num">Intervalle ${n}</span>
+            <label class="reps-inline-label"><span>R&eacute;p.</span>
+                <input type="number" data-sf="reps" min="1" value="1" class="input-unit-val reps-input">
+            </label>
+            <button type="button" class="btn-remove" onclick="removeSeg(this,${itemId})">&#x2715;</button>
+        </div>
+        <div class="segment-phase-row">
+            <span class="segment-phase-label phase-haute">&#x2B06; Haute</span>
+            <input type="number" data-sf="h_valeur" min="0" step="0.5" value="30" class="input-unit-val seg-val">
+            <select data-sf="h_type" class="form-select-sm">${unitOpts}</select>
+            <span class="phase-at">@</span>
+            <input type="text" data-sf="h_allure_valeur" class="input-unit-val seg-allure-val" placeholder="Ex: 4:30">
+            <select data-sf="h_allure_type" class="form-select-sm">${allureOpts}</select>
+        </div>
+        <div class="segment-phase-row">
+            <span class="segment-phase-label phase-basse">&#x2B07; R&eacute;cup.</span>
+            <input type="number" data-sf="b_valeur" min="0" step="0.5" value="90" class="input-unit-val seg-val">
+            <select data-sf="b_type" class="form-select-sm">${unitOpts}</select>
+            <span class="phase-at">@</span>
+            <input type="text" data-sf="b_allure_valeur" class="input-unit-val seg-allure-val" placeholder="Ex: 6:00">
+            <select data-sf="b_allure_type" class="form-select-sm">${allureOpts}</select>
+        </div>`);
+}
+
+function addRB(itemId) {
+    _addSegRow(itemId, 'recuperation', `
+        <input type="hidden" data-sf="kind" value="recuperation">
+        <div class="segment-header">
+            <span class="segment-num seg-kind-recup">&#x23F8; R&eacute;cup&eacute;ration</span>
+            <button type="button" class="btn-remove" onclick="removeSeg(this,${itemId})">&#x2715;</button>
+        </div>
+        <div class="segment-phase-row">
+            <input type="number" data-sf="b_valeur" min="0" step="0.5" value="90" class="input-unit-val seg-val">
+            <select data-sf="b_type" class="form-select-sm">${unitOpts}</select>
+        </div>`);
+}
+
+function removeSeg(btn, itemId) {
+    btn.closest('.segment-row').remove();
+    let n = 0;
+    document.getElementById('seg-list-' + itemId).querySelectorAll('.segment-row').forEach(r => {
+        if (r.dataset.kind === 'fractionne') { n++; r.querySelector('.segment-num').textContent = 'Intervalle ' + n; }
+    });
+    segCounters[itemId] = n;
+}
+
+function _addSegFromData(itemId, seg) {
+    const kind = seg.kind || 'fractionne';
+    if      (kind === 'course')       addCB(itemId);
+    else if (kind === 'recuperation') addRB(itemId);
+    else                              addIB(itemId);
+    const row = document.getElementById('seg-list-' + itemId).lastElementChild;
+    const sv  = (f, v) => { const e = row.querySelector('[data-sf="' + f + '"]'); if (e) e.value = v; };
+    if (kind === 'course') {
+        sv('h_valeur', (seg.haute || {}).valeur || 0); sv('h_type', (seg.haute || {}).type || 'sec');
+        sv('h_allure_valeur', (seg.haute || {}).allure_valeur || ''); sv('h_allure_type', (seg.haute || {}).allure_type || 'minkm');
+    } else if (kind === 'recuperation') {
+        sv('b_valeur', (seg.basse || {}).valeur || 90); sv('b_type', (seg.basse || {}).type || 'sec');
+    } else {
+        sv('reps', seg.reps || 1);
+        sv('h_valeur', (seg.haute || {}).valeur || 30); sv('h_type', (seg.haute || {}).type || 'sec');
+        sv('h_allure_valeur', (seg.haute || {}).allure_valeur || ''); sv('h_allure_type', (seg.haute || {}).allure_type || 'minkm');
+        sv('b_valeur', (seg.basse || {}).valeur || 90); sv('b_type', (seg.basse || {}).type || 'sec');
+        sv('b_allure_valeur', (seg.basse || {}).allure_valeur || ''); sv('b_allure_type', (seg.basse || {}).allure_type || 'minkm');
+    }
+}
+
+// ── Drag-and-drop reorder ────────────────────────────────
+let dragSrcId = null;
+
+function initDrag(el) {
+    const handle = el.querySelector('.drag-handle');
+    // Activate draggable only when pressing the handle
+    handle.addEventListener('mousedown', () => el.setAttribute('draggable', 'true'));
+    handle.addEventListener('touchstart', () => el.setAttribute('draggable', 'true'), {passive: true});
+
+    el.addEventListener('dragstart', e => {
+        dragSrcId = parseInt(el.id.replace('item-', ''));
+        e.dataTransfer.effectAllowed = 'move';
+        // Delay adding the class so the drag ghost is rendered first
+        setTimeout(() => el.classList.add('dragging'), 0);
+    });
+    el.addEventListener('dragend', () => {
+        el.removeAttribute('draggable');
+        el.classList.remove('dragging');
+        document.querySelectorAll('#items-list .seance-item').forEach(i => i.classList.remove('drag-over-top', 'drag-over-bottom'));
+        dragSrcId = null;
+    });
+    el.addEventListener('dragover', e => {
+        if (dragSrcId === null) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        document.querySelectorAll('#items-list .seance-item').forEach(i => i.classList.remove('drag-over-top', 'drag-over-bottom'));
+        if (el.id !== 'item-' + dragSrcId) {
+            const rect = el.getBoundingClientRect();
+            if (e.clientY < rect.top + rect.height / 2) el.classList.add('drag-over-top');
+            else el.classList.add('drag-over-bottom');
+        }
+    });
+    el.addEventListener('drop', e => {
+        e.preventDefault();
+        const targetId = parseInt(el.id.replace('item-', ''));
+        if (dragSrcId === null || dragSrcId === targetId) return;
+        const list = document.getElementById('items-list');
+        const src  = document.getElementById('item-' + dragSrcId);
+        if (el.classList.contains('drag-over-top')) list.insertBefore(src, el);
+        else list.insertBefore(src, el.nextSibling);
+        el.classList.remove('drag-over-top', 'drag-over-bottom');
+        itemOrder = [...list.children].map(c => parseInt(c.id.replace('item-', '')));
+    });
+}
+
+// ── Collect & Submit ──────────────────────────────────────────
+function collectItem(itemId) {
+    const el = document.getElementById('item-' + itemId);
+    const g  = f => ((el.querySelector('[data-field="' + f + '"]') || {}).value) || '';
+    if (el.dataset.type === 'renforcement') {
+        const exId = parseInt(document.getElementById('ex-val-' + itemId)?.value) || null;
+        const ex   = EXERCICES_LIST.find(e => e.id === exId);
+        return {
+            type: 'renforcement',
+            exercice_id:  exId || null,
+            exercice_nom: ex ? ex.nom : '',
+            series:  parseInt(g('series'))   || 3,
+            reps:    parseInt(g('reps'))     || 10,
+            charge:  parseFloat(g('charge')) || 0,
+        };
+    } else {
+        const tc   = ((el.querySelector('[name^="tc_"]:checked') || {}).value) || 'longue';
+        const item = { type: 'course', nom: g('nom'), type_course: tc };
+        if (tc === 'longue') {
+            item.mesure              = ((el.querySelector('[name^="mes_"]:checked') || {}).value) || 'temps';
+            item.valeur_longue       = parseFloat(g('valeur_longue'))   || 30;
+            item.allure_type_longue  = g('allure_type_longue');
+            item.allure_valeur_longue = g('allure_valeur_longue');
+        } else {
+            const segs = [];
+            document.getElementById('seg-list-' + itemId).querySelectorAll('.segment-row').forEach(row => {
+                const kind = ((row.querySelector('[data-sf="kind"]') || {}).value) || 'fractionne';
+                const gs = f => ((row.querySelector('[data-sf="' + f + '"]') || {}).value) || '';
+                const gf = f => parseFloat(gs(f)) || 0;
+                if (kind === 'course') {
+                    segs.push({ kind, haute: { valeur: gf('h_valeur'), type: gs('h_type') || 'sec',
+                        allure_valeur: gs('h_allure_valeur'), allure_type: gs('h_allure_type') || 'minkm' } });
+                } else if (kind === 'recuperation') {
+                    segs.push({ kind, basse: { valeur: gf('b_valeur'), type: gs('b_type') || 'sec' } });
+                } else {
+                    segs.push({ kind, reps: parseInt(gs('reps')) || 1,
+                        haute: { valeur: gf('h_valeur'), type: gs('h_type') || 'sec',
+                            allure_valeur: gs('h_allure_valeur'), allure_type: gs('h_allure_type') || 'minkm' },
+                        basse: { valeur: gf('b_valeur'), type: gs('b_type') || 'sec',
+                            allure_valeur: gs('b_allure_valeur'), allure_type: gs('b_allure_type') || 'minkm' } });
+                }
+            });
+            item.segments = segs;
+        }
+        return item;
+    }
+}
+
+document.getElementById('seance-form').addEventListener('submit', function() {
+    document.getElementById('items-json').value = JSON.stringify(itemOrder.map(collectItem));
+});
+
+if (typeof INIT_DATA !== 'undefined') {
+    (INIT_DATA.blocs || []).forEach(bloc => {
+        if (bloc.type === 'renforcement') addRenforcement(bloc);
+        else addCourseItem(bloc);
+    });
+}
+</script>
+{% endblock %}

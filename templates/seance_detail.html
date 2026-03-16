@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+
+{% block title %}Fiche Seance{% endblock %}
+
+{% block content %}
+<section class="section-header">
+    <div>
+        <h2>{{ seance.nom }}</h2>
+        <p class="subtitle">{{ seance.blocs|length if seance.blocs else 0 }} élément(s)</p>
+    </div>
+    <div class="header-actions">
+        <a class="btn" href="{{ url_for('seance_modifier', seance_id=seance.id) }}">Modifier</a>
+        <form method="post" action="{{ url_for('seance_supprimer', seance_id=seance.id) }}"
+              data-confirm="Supprimer la séance &laquo;&nbsp;{{ seance.nom }}&nbsp;&raquo; ?"
+              data-confirm-label="Supprimer">
+            <button type="submit" class="btn btn-danger btn-sm">Supprimer</button>
+        </form>
+        <a class="btn btn-light" href="{{ url_for('seances') }}">Retour</a>
+    </div>
+</section>
+
+{% if seance.blocs %}
+
+{# ── Calcul des scores musculaires ──────────────────────────── #}
+{% set scores = namespace(data={}) %}
+{% for bloc in seance.blocs %}
+    {% if bloc.type == 'renforcement' %}
+        {% set ex = exercices_map.get(bloc.exercice_id) %}
+        {% if ex %}
+            {% if ex.groupe_principal %}
+                {% set cur = scores.data.get(ex.groupe_principal, 0) %}
+                {% set _ = scores.data.update({ex.groupe_principal: cur + 5}) %}
+            {% endif %}
+            {% for g in ex.groupes_musculaires %}
+                {% set cur = scores.data.get(g, 0) %}
+                {% set _ = scores.data.update({g: cur + 1}) %}
+            {% endfor %}
+        {% endif %}
+    {% endif %}
+{% endfor %}
+
+{% if scores.data %}
+<section class="muscle-summary-section">
+    <h3 class="muscle-summary-title">Groupes musculaires sollicités</h3>
+    <div class="muscle-summary-chips">
+        {% for muscle, score in scores.data.items() | sort(attribute=1, reverse=True) %}
+        <span class="muscle-summary-chip {% if score >= 5 %}msc-primary{% elif score >= 2 %}msc-secondary{% else %}msc-light{% endif %}">
+            {{ muscle }}
+        </span>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<section class="cards-grid">
+    {% for bloc in seance.blocs %}
+    <article class="card">
+
+        {% if bloc.type == 'renforcement' %}
+        {% set ex = exercices_map.get(bloc.exercice_id) %}
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+            <h3>{{ bloc.exercice_nom or (ex.nom if ex else '—') }}</h3>
+            <span class="cat-badge cat-renforcement">Renforcement</span>
+        </div>
+        {% if ex and (ex.groupe_principal or ex.groupes_musculaires) %}
+        <div class="tags-display tags-display-sm">
+            {% if ex.groupe_principal %}<span class="tag tag-primary">{{ ex.groupe_principal }}</span>{% endif %}
+            {% for g in ex.groupes_musculaires %}<span class="tag tag-secondary">{{ g }}</span>{% endfor %}
+        </div>
+        {% endif %}
+        <ul class="details-list">
+            <li>{{ bloc.series }} série(s) &times; {{ bloc.reps }} rép. @ {{ bloc.charge }} kg</li>
+        </ul>
+        {% if ex %}
+        <a class="btn btn-sm btn-light" href="{{ url_for('exercice_detail', exercice_id=ex.id) }}">Ouvrir l'exercice</a>
+        {% endif %}
+
+        {% else %}
+        {% set nom_course = bloc.nom or ('Sortie longue' if bloc.type_course == 'longue' else 'Fractionné') %}
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+            <h3>{{ nom_course }}</h3>
+            <span class="cat-badge cat-course">Course</span>
+        </div>
+        {% if bloc.type_course == 'longue' %}
+        <ul class="details-list">
+            <li>Sortie longue</li>
+            <li>{% if bloc.mesure == 'temps' %}{{ bloc.valeur_longue }} min{% else %}{{ bloc.valeur_longue }} km{% endif %}</li>
+            {% if bloc.allure_valeur_longue %}
+            <li>@ {{ bloc.allure_valeur_longue }} {% if bloc.allure_type_longue == 'kmh' %}km/h{% else %}min/km{% endif %}</li>
+            {% endif %}
+        </ul>
+        {% else %}
+        <p class="field-label">Fractionné</p>
+        {% if bloc.segments %}
+        <div class="frac-segs">
+            {% for seg in bloc.segments %}
+            <div class="frac-seg">
+                {% if seg.kind == 'course' %}
+                <div class="frac-seg-num">&#x26A1; Course</div>
+                <div class="frac-seg-phases">
+                    <span>{{ seg.haute.valeur }} {{ seg.haute.type }}{% if seg.haute.allure_valeur %} @ {{ seg.haute.allure_valeur }} {% if seg.haute.allure_type == 'kmh' %}km/h{% elif seg.haute.allure_type == 'minkm' %}min/km{% else %}%{% endif %}{% endif %}</span>
+                </div>
+                {% elif seg.kind == 'recuperation' %}
+                <div class="frac-seg-num">&#x23F8; Récupération</div>
+                <div class="frac-seg-phases"><span>{{ seg.basse.valeur }} {{ seg.basse.type }}</span></div>
+                {% else %}
+                <div class="frac-seg-num">Intervalle &times; {{ seg.reps }}</div>
+                <div class="frac-seg-phases">
+                    <span><strong class="phase-haute">&#x2B06; Haute :</strong> {{ seg.haute.valeur }} {{ seg.haute.type }}{% if seg.haute.allure_valeur %} @ {{ seg.haute.allure_valeur }} {% if seg.haute.allure_type == 'kmh' %}km/h{% elif seg.haute.allure_type == 'minkm' %}min/km{% else %}%{% endif %}{% endif %}</span>
+                    <span><strong class="phase-basse">&#x2B07; Récup. :</strong> {{ seg.basse.valeur }} {{ seg.basse.type }}{% if seg.basse.allure_valeur %} @ {{ seg.basse.allure_valeur }} {% if seg.basse.allure_type == 'kmh' %}km/h{% elif seg.basse.allure_type == 'minkm' %}min/km{% else %}%{% endif %}{% endif %}</span>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endif %}
+        {% endif %}
+
+    </article>
+    {% endfor %}
+</section>
+{% else %}
+<p class="empty-state">Aucun élément dans cette séance. <a href="{{ url_for('seance_modifier', seance_id=seance.id) }}">Modifier la séance.</a></p>
+{% endif %}
+{% endblock %}

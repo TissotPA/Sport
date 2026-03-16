@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}Programmes{% endblock %}
+
+{% block content %}
+<section class="section-header">
+    <h2>Liste des programmes</h2>
+    <a class="btn" href="{{ url_for('programme_creer') }}">+ Créer un programme</a>
+</section>
+
+{% if programmes %}
+<section class="cards-grid">
+    {% for programme in programmes %}
+    <article class="card" data-href="{{ url_for('programme_detail', programme_id=programme.id) }}">
+        <h3>{{ programme.nom }}</h3>
+        <p>{{ programme.seances|length }} séance(s)</p>
+    </article>
+    {% endfor %}
+</section>
+{% else %}
+<p class="empty-state">Aucun programme pour l'instant. <a href="{{ url_for('programme_creer') }}">Créez votre premier programme.</a></p>
+{% endif %}
+{% endblock %}

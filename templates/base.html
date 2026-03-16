@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Programme Musculation{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- ── Modal de confirmation ─────────────────────────────────── -->
+    <div id="modal-overlay" class="modal-overlay hidden" role="dialog" aria-modal="true">
+        <div class="modal-box">
+            <p class="modal-message" id="modal-message"></p>
+            <div class="modal-actions">
+                <button class="btn btn-light" id="modal-cancel">Annuler</button>
+                <button class="btn btn-danger" id="modal-confirm">Supprimer</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <div>
+                    <h1>Coach Planner</h1>
+                    <p>Création de programmes, séances et exercices</p>
+                </div>
+                <div class="header-io">
+                    <a class="btn btn-light btn-sm" href="{{ url_for('charger_json') }}">&#x21BA; Charger</a>
+                    <a class="btn btn-light btn-sm" href="{{ url_for('export_data') }}">&#8595; Exporter</a>
+                    <label class="btn btn-light btn-sm" style="cursor:pointer;margin:0">
+                        &#8593; Importer
+                        <form id="import-form" method="post" action="{{ url_for('import_data') }}" enctype="multipart/form-data" style="display:none">
+                            <input type="file" name="fichier" accept=".json" id="import-input">
+                        </form>
+                    </label>
+                </div>
+            </div>
+        </header>
+
+        <nav class="nav">
+            <a class="nav-btn {% if active_tab == 'programmes' %}active{% endif %}" href="{{ url_for('programmes') }}">Programmes</a>
+            <a class="nav-btn {% if active_tab == 'seances' %}active{% endif %}" href="{{ url_for('seances') }}">Séances</a>
+            <a class="nav-btn {% if active_tab == 'exercices' %}active{% endif %}" href="{{ url_for('exercices') }}">Exercices</a>
+        </nav>
+
+        <main class="main">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <script>
+    // ── Import auto-submit on file pick ─────────────────────────
+    document.querySelector('.header-io label').addEventListener('click', () => {
+        document.getElementById('import-input').click();
+    });
+    document.getElementById('import-input').addEventListener('change', () => {
+        document.getElementById('import-form').submit();
+    });
+
+    // ── Modal de confirmation ──────────────────────────────
+    let _modalCallback = null;
+
+    function showConfirm(message, confirmLabel, onConfirm) {
+        document.getElementById('modal-message').textContent = message;
+        document.getElementById('modal-confirm').textContent = confirmLabel || 'Confirmer';
+        _modalCallback = onConfirm;
+        document.getElementById('modal-overlay').classList.remove('hidden');
+    }
+
+    document.getElementById('modal-cancel').addEventListener('click', () => {
+        document.getElementById('modal-overlay').classList.add('hidden');
+        _modalCallback = null;
+    });
+
+    document.getElementById('modal-confirm').addEventListener('click', () => {
+        document.getElementById('modal-overlay').classList.add('hidden');
+        if (_modalCallback) { _modalCallback(); _modalCallback = null; }
+    });
+
+    document.getElementById('modal-overlay').addEventListener('click', e => {
+        if (e.target === e.currentTarget) {
+            document.getElementById('modal-overlay').classList.add('hidden');
+            _modalCallback = null;
+        }
+    });
+
+    // Intercept all forms with data-confirm
+    document.addEventListener('submit', function(e) {
+        const form = e.target;
+        const msg = form.dataset.confirm;
+        if (msg) {
+            e.preventDefault();
+            const label = form.dataset.confirmLabel || 'Confirmer';
+            showConfirm(msg, label, () => {
+                form.removeAttribute('data-confirm');
+                form.submit();
+            });
+        }
+    }, true);
+
+    // Cartes cliquables (data-href) — ignore clics sur liens/boutons/formulaires
+    document.addEventListener('click', function(e) {
+        const card = e.target.closest('[data-href]');
+        if (!card) return;
+        if (e.target.closest('a, button, input, select, textarea, form')) return;
+        window.location.href = card.dataset.href;
+    });
+    </script>
+</body>
+</html>

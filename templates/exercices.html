@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}Exercices{% endblock %}
+
+{% block content %}
+<section class="section-header">
+    <h2>Liste des exercices</h2>
+    <a class="btn" href="{{ url_for('exercice_creer') }}">+ Créer un exercice</a>
+</section>
+
+{% if exercices %}
+<section class="cards-grid">
+    {% for exercice in exercices %}
+    <article class="card" data-href="{{ url_for('exercice_detail', exercice_id=exercice.id) }}">
+        <h3>{{ exercice.nom }}</h3>
+        {% if exercice.groupe_principal or exercice.groupes_musculaires %}
+        <div class="tags-display tags-display-sm">
+            {% if exercice.groupe_principal %}
+            <span class="tag tag-primary">{{ exercice.groupe_principal }}</span>
+            {% endif %}
+            {% for g in exercice.groupes_musculaires %}
+            <span class="tag tag-secondary">{{ g }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+        <div class="card-actions">
+            <a class="btn btn-light btn-sm" href="{{ url_for('exercice_modifier', exercice_id=exercice.id) }}">Modifier</a>
+            <form method="post" action="{{ url_for('exercice_supprimer', exercice_id=exercice.id) }}"
+                  data-confirm="Supprimer l'exercice « {{ exercice.nom }} » ?"
+                  data-confirm-label="Supprimer">
+                <button type="submit" class="btn btn-danger btn-sm">Supprimer</button>
+            </form>
+        </div>
+    </article>
+    {% endfor %}
+</section>
+{% else %}
+<p class="empty-state">Aucun exercice pour l'instant. <a href="{{ url_for('exercice_creer') }}">Créez votre premier exercice.</a></p>
+{% endif %}
+{% endblock %}

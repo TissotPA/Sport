@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Modifier' if exercice else 'Nouvel exercice' }}{% endblock %}
+{% block content %}
+<section class="section-header">
+    <h2>{{ 'Modifier – ' + exercice.nom if exercice else 'Nouvel exercice' }}</h2>
+    <a class="btn btn-light" href="{{ url_for('exercice_detail', exercice_id=exercice.id) if exercice else url_for('exercices') }}">Annuler</a>
+</section>
+
+{% set muscles = ['Pectoraux','Grand dorsal','Épaules','Biceps','Triceps','Avant-bras','Abdominaux','Obliques','Trapèzes','Lombaires','Quadriceps','Ischio-jambiers','Fessiers','Mollets','Adducteurs','Abducteurs'] %}
+
+<form class="form-card" method="post" action="{{ url_for('exercice_modifier', exercice_id=exercice.id) if exercice else url_for('exercice_creer') }}">
+
+    <div class="form-group">
+        <label for="nom">Nom de l'exercice</label>
+        <input type="text" id="nom" name="nom" required placeholder="Ex : Squat barre"
+               value="{{ exercice.nom if exercice else '' }}">
+    </div>
+
+    <div class="form-group">
+        <label>Groupes musculaires
+            <span class="hint"> — 1×&nbsp;secondaire &nbsp;·&nbsp; 2×&nbsp;principal &nbsp;·&nbsp; 3×&nbsp;retirer</span>
+        </label>
+        <div class="muscle-chips" id="muscle-chips">
+            {% for m in muscles %}
+            <button type="button" class="muscle-chip" data-muscle="{{ m }}">{{ m }}</button>
+            {% endfor %}
+        </div>
+        <div class="muscle-legend">
+            <span class="legend-chip legend-secondary">Secondaire</span>
+            <span class="legend-chip legend-primary">Principal</span>
+        </div>
+        <div id="muscle-inputs"></div>
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; margin-top:4px;">
+        <button type="submit" class="btn">{{ 'Enregistrer les modifications' if exercice else 'Créer l\'exercice' }}</button>
+    </div>
+</form>
+
+{% if exercice %}
+<script>const INIT_DATA = {{ exercice | tojson }};</script>
+{% endif %}
+
+<script>
+const muscleStates = {};
+let currentPrimary = null;
+
+document.querySelectorAll('.muscle-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const m = btn.dataset.muscle;
+        const s = muscleStates[m] || 'none';
+        if (s === 'none') {
+            muscleStates[m] = 'secondary';
+        } else if (s === 'secondary') {
+            if (currentPrimary && currentPrimary !== m) {
+                muscleStates[currentPrimary] = 'secondary';
+                refreshChip(currentPrimary);
+            }
+            muscleStates[m] = 'primary';
+            currentPrimary = m;
+        } else {
+            if (currentPrimary === m) currentPrimary = null;
+            muscleStates[m] = 'none';
+        }
+        refreshChip(m);
+        syncMuscleInputs();
+    });
+});
+
+function refreshChip(muscle) {
+    const btn = document.querySelector(`.muscle-chip[data-muscle="${muscle}"]`);
+    btn.classList.remove('chip-secondary', 'chip-primary');
+    const s = muscleStates[muscle] || 'none';
+    if (s === 'secondary') btn.classList.add('chip-secondary');
+    if (s === 'primary')   btn.classList.add('chip-primary');
+}
+
+function syncMuscleInputs() {
+    const container = document.getElementById('muscle-inputs');
+    container.innerHTML = '';
+    if (currentPrimary) {
+        const inp = document.createElement('input');
+        inp.type = 'hidden'; inp.name = 'groupe_principal'; inp.value = currentPrimary;
+        container.appendChild(inp);
+    }
+    Object.entries(muscleStates).forEach(([m, s]) => {
+        if (s === 'secondary') {
+            const inp = document.createElement('input');
+            inp.type = 'hidden'; inp.name = 'groupes_musculaires'; inp.value = m;
+            container.appendChild(inp);
+        }
+    });
+}
+
+if (typeof INIT_DATA !== 'undefined') {
+    if (INIT_DATA.groupe_principal) {
+        muscleStates[INIT_DATA.groupe_principal] = 'primary';
+        currentPrimary = INIT_DATA.groupe_principal;
+        refreshChip(INIT_DATA.groupe_principal);
+    }
+    (INIT_DATA.groupes_musculaires || []).forEach(m => {
+        muscleStates[m] = 'secondary';
+        refreshChip(m);
+    });
+    syncMuscleInputs();
+}
+</script>
+{% endblock %}

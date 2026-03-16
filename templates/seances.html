@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block title %}Séances{% endblock %}
+
+{% block content %}
+<section class="section-header">
+    <h2>Liste des séances</h2>
+    <a class="btn" href="{{ url_for('seance_creer') }}">+ Créer une séance</a>
+</section>
+
+{% if seances %}
+<section class="cards-grid">
+    {% for seance in seances %}
+    <article class="card" data-href="{{ url_for('seance_detail', seance_id=seance.id) }}">
+        <h3>{{ seance.nom }}</h3>
+        <p>{{ seance.blocs|length if seance.blocs else 0 }} élément(s)</p>
+        <div class="card-actions">
+            <a class="btn btn-sm btn-outline" href="{{ url_for('seance_modifier', seance_id=seance.id) }}">Modifier</a>
+            <form method="post" action="{{ url_for('seance_supprimer', seance_id=seance.id) }}"
+                  data-confirm="Supprimer la séance &laquo;&nbsp;{{ seance.nom }}&nbsp;&raquo; ?"
+                  data-confirm-label="Supprimer">
+                <button type="submit" class="btn btn-sm btn-danger">Supprimer</button>
+            </form>
+        </div>
+    </article>
+    {% endfor %}
+</section>
+{% else %}
+<p class="empty-state">Aucune séance pour l'instant. <a href="{{ url_for('seance_creer') }}">Créez votre première séance.</a></p>
+{% endif %}
+{% endblock %}
