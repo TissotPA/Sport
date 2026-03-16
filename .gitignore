@@ -1,6 +1,7 @@
 __pycache__/
 *.pyc
 *.pyo
+publish.ps1
 .env
 venv/
 .venv/

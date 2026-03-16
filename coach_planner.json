@@ -1,48 +1,19 @@
 {
-  "exercices": [],
-  "seances": [
+  "exercices": [
     {
       "id": 1,
-      "nom": "Push - Sans matériel #1",
-      "blocs": [
-        {
-          "type": "renforcement",
-          "exercice_id": 1,
-          "exercice_nom": "Pompes",
-          "series": 4,
-          "reps": 12,
-          "charge": 0
-        },
-        {
-          "type": "renforcement",
-          "exercice_id": 5,
-          "exercice_nom": "Pompes diamants",
-          "series": 3,
-          "reps": 8,
-          "charge": 0
-        },
-        {
-          "type": "renforcement",
-          "exercice_id": 2,
-          "exercice_nom": "Dips",
-          "series": 3,
-          "reps": 10,
-          "charge": 0
-        },
-        {
-          "type": "renforcement",
-          "exercice_id": 6,
-          "exercice_nom": "Pompes déclinées",
-          "series": 3,
-          "reps": 10,
-          "charge": 0
-        }
+      "nom": "Pompes",
+      "groupe_principal": "Pectoraux",
+      "groupes_musculaires": [
+        "Épaules",
+        "Triceps"
       ]
     }
   ],
+  "seances": [],
   "programmes": [],
   "_next_ids": {
-    "exercice": 1,
+    "exercice": 2,
     "seance": 2,
     "programme": 1
   }
