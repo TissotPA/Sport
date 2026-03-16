@@ -370,8 +370,9 @@
       <a class="btn btn-light" href="#exercices">Retour</a>
     </section>
     <article class="card card-single">`;
-
-    if (ex.groupe_principal || (ex.groupes_musculaires || []).length) {
+      if (ex.description) {
+        html += `<p class="exercice-description">${esc(ex.description)}</p>`;
+      }    if (ex.groupe_principal || (ex.groupes_musculaires || []).length) {
       html += '<div class="form-group"><p class="field-label">Groupes musculaires</p><div class="tags-display">';
       if (ex.groupe_principal) html += `<span class="tag tag-primary">${esc(ex.groupe_principal)}</span>`;
       for (const g of (ex.groupes_musculaires || [])) html += `<span class="tag tag-secondary">${esc(g)}</span>`;
