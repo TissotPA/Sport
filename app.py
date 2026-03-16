@@ -157,15 +157,17 @@ def exercice_detail(exercice_id):
 
 
 def _parse_exercice_form(request, existing_id=None):
-    """Parse exercise form: nom + groupes musculaires."""
+    """Parse exercise form: nom + description + groupes musculaires."""
     nom = request.form.get("nom", "").strip()
     if not nom:
         return None
+    description = request.form.get("description", "").strip()
     groupe_principal = request.form.get("groupe_principal", "").strip()
     groupes = request.form.getlist("groupes_musculaires")
     return {
         "id": existing_id if existing_id is not None else next_id("exercice"),
         "nom": nom,
+        "description": description,
         "groupe_principal": groupe_principal,
         "groupes_musculaires": groupes,
     }

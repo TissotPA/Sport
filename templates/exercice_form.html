@@ -17,6 +17,11 @@
     </div>
 
     <div class="form-group">
+        <label for="description">Description <span class="hint">— optionnelle</span></label>
+        <textarea id="description" name="description" placeholder="Placement, points de vigilance, variantes…">{{ exercice.description if exercice and exercice.description else '' }}</textarea>
+    </div>
+
+    <div class="form-group">
         <label>Groupes musculaires
             <span class="hint"> — 1×&nbsp;secondaire &nbsp;·&nbsp; 2×&nbsp;principal &nbsp;·&nbsp; 3×&nbsp;retirer</span>
         </label>

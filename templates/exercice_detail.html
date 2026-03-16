@@ -20,6 +20,9 @@
 </section>
 
 <article class="card card-single">
+    {% if exercice.description %}
+    <p class="exercice-description">{{ exercice.description }}</p>
+    {% endif %}
     {% if exercice.groupe_principal or exercice.groupes_musculaires %}
     <div class="form-group">
         <p class="field-label">Groupes musculaires</p>
