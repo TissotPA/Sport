@@ -49,12 +49,21 @@
         "Épaules",
         "Triceps"
       ]
+    },
+    {
+      "id": 6,
+      "nom": "Gainage",
+      "description": "",
+      "groupe_principal": "Abdominaux",
+      "groupes_musculaires": [
+        "Obliques"
+      ]
     }
   ],
   "seances": [],
   "programmes": [],
   "_next_ids": {
-    "exercice": 6,
+    "exercice": 7,
     "seance": 1,
     "programme": 1
   }
