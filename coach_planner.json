@@ -58,13 +58,205 @@
       "groupes_musculaires": [
         "Obliques"
       ]
+    },
+    {
+      "id": 7,
+      "nom": "Tractions table",
+      "description": "Allongé sous une table solide, saisissez le bord et tirez votre buste vers le haut",
+      "groupe_principal": "Grand dorsal",
+      "groupes_musculaires": [
+        "Biceps"
+      ]
+    },
+    {
+      "id": 8,
+      "nom": "Superman",
+      "description": "Allongé sur le ventre, décollez simultanément le buste et les bras",
+      "groupe_principal": "Lombaires",
+      "groupes_musculaires": [
+        "Grand dorsal",
+        "Trapèzes"
+      ]
+    },
+    {
+      "id": 9,
+      "nom": "Ange inversé",
+      "description": "Allongé sur le ventre, bras tendus, faites des arcs de cercle comme pour faire un ange dans la neige sans toucher le sol",
+      "groupe_principal": "Grand dorsal",
+      "groupes_musculaires": [
+        "Trapèzes",
+        "Lombaires"
+      ]
+    },
+    {
+      "id": 10,
+      "nom": "Rowing inversé",
+      "description": "Allongé sur le dos, utilisez vos coudes pour pousser le sol et décoller votre haut du corps",
+      "groupe_principal": "Grand dorsal",
+      "groupes_musculaires": [
+        "Biceps",
+        "Lombaires",
+        "Trapèzes"
+      ]
+    },
+    {
+      "id": 11,
+      "nom": "Walkouts",
+      "description": "Debout, posez les mains au sol et avancez jusqu'en position de planche, puis revenez",
+      "groupe_principal": "Épaules",
+      "groupes_musculaires": [
+        "Biceps",
+        "Triceps",
+        "Pectoraux"
+      ]
+    },
+    {
+      "id": 12,
+      "nom": "Hollow body hold",
+      "description": "Gainage sur le dos, jambes et bras décollés, bas du dos plaqué au sol",
+      "groupe_principal": "Abdominaux",
+      "groupes_musculaires": [
+        "Grand dorsal"
+      ]
+    },
+    {
+      "id": 13,
+      "nom": "Pompes larges",
+      "description": "",
+      "groupe_principal": "Pectoraux",
+      "groupes_musculaires": [
+        "Épaules",
+        "Triceps"
+      ]
+    },
+    {
+      "id": 14,
+      "nom": "Deadbug",
+      "description": "",
+      "groupe_principal": "Abdominaux",
+      "groupes_musculaires": [
+        "Obliques"
+      ]
+    },
+    {
+      "id": 15,
+      "nom": "Gainage latéral + rotations",
+      "description": "",
+      "groupe_principal": "Obliques",
+      "groupes_musculaires": [
+        "Abdominaux"
+      ]
+    },
+    {
+      "id": 16,
+      "nom": "Crunches",
+      "description": "",
+      "groupe_principal": "Abdominaux",
+      "groupes_musculaires": [
+        "Obliques"
+      ]
+    },
+    {
+      "id": 17,
+      "nom": "Russian twists",
+      "description": "",
+      "groupe_principal": "Obliques",
+      "groupes_musculaires": [
+        "Abdominaux"
+      ]
+    },
+    {
+      "id": 18,
+      "nom": "Hollow rock",
+      "description": "",
+      "groupe_principal": "Abdominaux",
+      "groupes_musculaires": [
+        "Obliques"
+      ]
     }
   ],
-  "seances": [],
+  "seances": [
+    {
+      "id": 1,
+      "nom": "Abdos #1",
+      "blocs": [
+        {
+          "type": "renforcement",
+          "exercice_id": 14,
+          "exercice_nom": "Deadbug",
+          "series": 3,
+          "reps": 12,
+          "charge": 0
+        },
+        {
+          "type": "renforcement",
+          "exercice_id": null,
+          "exercice_nom": "",
+          "series": 3,
+          "reps": 10,
+          "charge": 0
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "nom": "Abdos #1",
+      "blocs": [
+        {
+          "type": "renforcement",
+          "exercice_id": 14,
+          "exercice_nom": "Deadbug",
+          "series": 3,
+          "reps": 12,
+          "charge": 0
+        },
+        {
+          "type": "renforcement",
+          "exercice_id": 6,
+          "exercice_nom": "Gainage",
+          "series": 3,
+          "reps": 60,
+          "charge": 0
+        },
+        {
+          "type": "renforcement",
+          "exercice_id": 15,
+          "exercice_nom": "Gainage latéral + rotations",
+          "series": 6,
+          "reps": 30,
+          "charge": 0
+        },
+        {
+          "type": "renforcement",
+          "exercice_id": 16,
+          "exercice_nom": "Crunches",
+          "series": 3,
+          "reps": 15,
+          "charge": 0
+        },
+        {
+          "type": "renforcement",
+          "exercice_id": 17,
+          "exercice_nom": "Russian twists",
+          "series": 3,
+          "reps": 20,
+          "charge": 0
+        },
+        {
+          "type": "renforcement",
+          "exercice_id": 18,
+          "exercice_nom": "Hollow rock",
+          "series": 3,
+          "reps": 30,
+          "charge": 0
+        }
+      ]
+    }
+  ],
   "programmes": [],
   "_next_ids": {
-    "exercice": 7,
-    "seance": 1,
+    "exercice": 19,
+    "seance": 3,
     "programme": 1
   }
 }
