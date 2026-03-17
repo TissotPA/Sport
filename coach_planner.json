@@ -173,31 +173,19 @@
       "groupes_musculaires": [
         "Obliques"
       ]
+    },
+    {
+      "id": 19,
+      "nom": "Dips",
+      "description": "",
+      "groupe_principal": "Triceps",
+      "groupes_musculaires": [
+        "Pectoraux",
+        "Épaules"
+      ]
     }
   ],
   "seances": [
-    {
-      "id": 1,
-      "nom": "Abdos #1",
-      "blocs": [
-        {
-          "type": "renforcement",
-          "exercice_id": 14,
-          "exercice_nom": "Deadbug",
-          "series": 3,
-          "reps": 12,
-          "charge": 0
-        },
-        {
-          "type": "renforcement",
-          "exercice_id": null,
-          "exercice_nom": "",
-          "series": 3,
-          "reps": 10,
-          "charge": 0
-        }
-      ]
-    },
     {
       "id": 2,
       "nom": "Abdos #1",
@@ -251,12 +239,112 @@
           "charge": 0
         }
       ]
+    },
+    {
+      "id": 3,
+      "nom": "Push - Sans matériel #1",
+      "blocs": [
+        {
+          "type": "renforcement",
+          "exercice_id": 1,
+          "exercice_nom": "Pompes",
+          "series": 3,
+          "reps": 15,
+          "charge": 0
+        },
+        {
+          "type": "renforcement",
+          "exercice_id": 19,
+          "exercice_nom": "Dips",
+          "series": 3,
+          "reps": 12,
+          "charge": 0
+        },
+        {
+          "type": "renforcement",
+          "exercice_id": 3,
+          "exercice_nom": "Pompes pike",
+          "series": 3,
+          "reps": 15,
+          "charge": 0
+        },
+        {
+          "type": "renforcement",
+          "exercice_id": 2,
+          "exercice_nom": "Pompes déclinées",
+          "series": 3,
+          "reps": 15,
+          "charge": 0
+        },
+        {
+          "type": "renforcement",
+          "exercice_id": 4,
+          "exercice_nom": "Pompes diamants",
+          "series": 3,
+          "reps": 10,
+          "charge": 0
+        },
+        {
+          "type": "renforcement",
+          "exercice_id": 11,
+          "exercice_nom": "Walkouts",
+          "series": 3,
+          "reps": 10,
+          "charge": 0
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "nom": "Pull - Sans matériel #1",
+      "blocs": [
+        {
+          "type": "renforcement",
+          "exercice_id": 7,
+          "exercice_nom": "Tractions table",
+          "series": 3,
+          "reps": 10,
+          "charge": 0
+        },
+        {
+          "type": "renforcement",
+          "exercice_id": 8,
+          "exercice_nom": "Superman",
+          "series": 3,
+          "reps": 30,
+          "charge": 0
+        },
+        {
+          "type": "renforcement",
+          "exercice_id": 9,
+          "exercice_nom": "Ange inversé",
+          "series": 3,
+          "reps": 10,
+          "charge": 0
+        },
+        {
+          "type": "renforcement",
+          "exercice_id": 10,
+          "exercice_nom": "Rowing inversé",
+          "series": 3,
+          "reps": 10,
+          "charge": 0
+        },
+        {
+          "type": "renforcement",
+          "exercice_id": 12,
+          "exercice_nom": "Hollow body hold",
+          "series": 3,
+          "reps": 10,
+          "charge": 0
+        }
+      ]
     }
   ],
   "programmes": [],
   "_next_ids": {
-    "exercice": 19,
-    "seance": 3,
+    "exercice": 20,
+    "seance": 5,
     "programme": 1
   }
 }
